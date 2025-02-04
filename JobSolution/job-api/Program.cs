@@ -1,4 +1,8 @@
 
+using JobMonitor.Application.Interfaces;
+using JobMonitor.Infrastructure.HttpClients;
+using JobMonitor.Infrastructure.Services;
+
 namespace job_api
 {
     public class Program
@@ -6,6 +10,15 @@ namespace job_api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Configuration.AddUserSecrets<Program>();
+            string apiKey = builder.Configuration["OpenAI:ApiKey"];
+
+            builder.Services.AddScoped<OpenAiService>(provider =>
+                new OpenAiService(apiKey));
+
+            builder.Services.AddHttpClient<IHeadHunterHttpClient, HeadHunterHttpClient>();
+            builder.Services.AddScoped<IHeadHunterService, HeadHunterService>();
 
             // Add services to the container.
 
