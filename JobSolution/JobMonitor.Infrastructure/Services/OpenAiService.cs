@@ -12,6 +12,7 @@ namespace JobMonitor.Infrastructure.Services
         public OpenAiService(string apiKey)
         {
             _chatClient = new ChatClient("gpt-4", apiKey);
+
         }
 
         // Метод для генерации текста в ответ на запрос
