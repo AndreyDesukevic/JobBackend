@@ -34,29 +34,37 @@ public class AuthController : ControllerBase
     [HttpPost("callback")]
     public async Task<IActionResult> Callback([FromQuery] string code)
     {
-        var accessToken = await _authService.GetAccessTokenAsync(code);
-        if (accessToken == null) return Unauthorized();
+        if (string.IsNullOrEmpty(code)) return BadRequest("Authorization code is missing");
 
-        var user = await _authService.GetUserAsync(accessToken);
+        var tokenResponse = await _authService.GetAccessTokenAsync(code);
+        if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.AccessToken)) return Unauthorized();
+
+        var user = await _authService.GetUserAsync(tokenResponse.AccessToken);
         if (user == null) return Unauthorized();
 
-        var token = GenerateJwtToken(user);
-        Response.Cookies.Append("jwt", token, new CookieOptions { HttpOnly = true, Secure = true });
+        var jwtToken = GenerateJwtToken(user);
 
-        return Ok(new { message = "Authenticated", token });
+        return Ok(new
+        {
+            access_token = jwtToken, // Твой JWT
+            hh_access_token = tokenResponse.AccessToken, // Токен HeadHunter
+            hh_refresh_token = tokenResponse.RefreshToken, // Refresh-токен HH
+            expires_in = tokenResponse.ExpiresIn // Время жизни токена HH
+        });
     }
 
     private string GenerateJwtToken(HeadHunterUser user)
     {
+
+        var claims = new[]
+        {
+        new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+        new Claim(JwtRegisteredClaimNames.Email, user.Email),
+        new Claim("name", $"{user.FirstName} {user.LastName}")
+        };
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfig.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim("name", $"{user.FirstName} {user.LastName}")
-        };
 
         var token = new JwtSecurityToken(
             issuer: _jwtConfig.Issuer,
@@ -65,6 +73,7 @@ public class AuthController : ControllerBase
             expires: DateTime.UtcNow.AddMinutes(_jwtConfig.ExpireMinutes),
             signingCredentials: creds
         );
+
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
