@@ -44,13 +44,15 @@ public class AuthController : ControllerBase
 
         var jwtToken = GenerateJwtToken(user);
 
-        return Ok(new
+        var response = new
         {
-            access_token = jwtToken, // Твой JWT
-            hh_access_token = tokenResponse.AccessToken, // Токен HeadHunter
-            hh_refresh_token = tokenResponse.RefreshToken, // Refresh-токен HH
-            expires_in = tokenResponse.ExpiresIn // Время жизни токена HH
-        });
+            access_token = jwtToken,
+            hh_access_token = tokenResponse.AccessToken,
+            hh_refresh_token = tokenResponse.RefreshToken,
+            expires_in = tokenResponse.ExpiresIn
+        };
+
+        return Ok(response);
     }
 
     private string GenerateJwtToken(HeadHunterUser user)
@@ -59,8 +61,9 @@ public class AuthController : ControllerBase
         var claims = new[]
         {
         new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-        new Claim(JwtRegisteredClaimNames.Email, user.Email),
-        new Claim("name", $"{user.FirstName} {user.LastName}")
+        new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+        new Claim("name", $"{user.LastName} {user.FirstName}"),
+        new Claim("phone", user.Phone ?? string.Empty),
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfig.Key));

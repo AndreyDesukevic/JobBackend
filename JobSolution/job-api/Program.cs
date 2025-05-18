@@ -37,12 +37,12 @@ namespace job_api
 
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowFrontend", policy =>
+                options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("http://localhost:3000")
-                          .AllowCredentials()
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy.WithOrigins("http://localhost:5173");
+                    policy.AllowAnyHeader();
+                    policy.AllowAnyMethod();
+                    policy.AllowCredentials();
                 });
             });
 
@@ -56,9 +56,8 @@ namespace job_api
                 app.MapOpenApi();
             }
 
-            app.UseCors("AllowFrontend");
+            app.UseCors();
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
 
 
