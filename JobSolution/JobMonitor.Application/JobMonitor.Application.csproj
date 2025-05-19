@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JobMonitor.Domain\JobMonitor.Domain.csproj" />
+    <ProjectReference Include="..\JobMonitor.Infrastructure\JobMonitor.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
