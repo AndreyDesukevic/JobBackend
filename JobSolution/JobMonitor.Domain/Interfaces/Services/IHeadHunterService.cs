@@ -1,6 +1,6 @@
-﻿using JobMonitor.Application.ResponseModels;
+﻿using JobMonitor.Domain.ResponseModels;
 
-namespace JobMonitor.Application.Interfaces;
+namespace JobMonitor.Domain.Interfaces.Services;
 
 public interface IHeadHunterService
 {

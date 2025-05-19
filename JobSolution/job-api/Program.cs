@@ -1,7 +1,13 @@
-using JobMonitor.Application.Interfaces;
-using JobMonitor.Application.Models;
+using JobMonitor.Application.Services;
+using JobMonitor.Domain.Interfaces;
+using JobMonitor.Domain.Interfaces.Repositories;
+using JobMonitor.Domain.Interfaces.Services;
+using JobMonitor.Domain.Models;
+using JobMonitor.Infrastructure.Database;
+using JobMonitor.Infrastructure.Database.Repositories;
 using JobMonitor.Infrastructure.HttpClients;
 using JobMonitor.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace job_api
 {
@@ -12,8 +18,11 @@ namespace job_api
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Configuration.AddUserSecrets<Program>();
-            string apiKeyOpenAi = builder.Configuration["OpenAI:ApiKey"];
-            string apiKeyDeepSeek = builder.Configuration["DeepSeek:ApiKey"];
+            string apiKeyOpenAi = builder.Configuration["OpenAI:ApiKey"] ?? throw new InvalidOperationException("OpenAI ApiKey is not configured.");
+            string apiKeyDeepSeek = builder.Configuration["DeepSeek:ApiKey"] ?? throw new InvalidOperationException("DeepSeek ApiKey is not configured.");
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+              options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.Configure<HeadHunterConfig>(builder.Configuration.GetSection("HeadHunter"));
             builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("Jwt"));
@@ -25,6 +34,13 @@ namespace job_api
 
             builder.Services.AddHttpClient<HeadHunterAuthService>();
             builder.Services.AddScoped<HeadHunterAuthService>();
+
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IAppTokenService, AppTokenService>();
+
+            builder.Services.AddScoped<IAppTokenRepository, AppTokenRepository>();
+            builder.Services.AddScoped<IHhTokenRepository, HhTokenRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             builder.Services.AddHttpClient<IHeadHunterHttpClient, HeadHunterHttpClient>();
             builder.Services.AddScoped<IHeadHunterService, HeadHunterService>();

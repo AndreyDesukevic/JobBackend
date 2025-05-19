@@ -1,4 +1,4 @@
-﻿namespace JobMonitor.Application.RequestModels;
+﻿namespace JobMonitor.Domain.RequestModels;
 
 public class CoverLetterRequest
 {

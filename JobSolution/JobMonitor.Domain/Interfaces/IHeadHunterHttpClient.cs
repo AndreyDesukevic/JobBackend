@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace JobMonitor.Application.Interfaces;
+namespace JobMonitor.Domain.Interfaces;
 
 public interface IHeadHunterHttpClient
 {

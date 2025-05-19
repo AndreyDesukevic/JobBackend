@@ -1,4 +1,4 @@
-﻿namespace JobMonitor.Application.Models;
+﻿namespace JobMonitor.Domain.Models;
 
 public class JwtConfig
 {

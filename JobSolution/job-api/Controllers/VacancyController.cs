@@ -1,4 +1,4 @@
-﻿using JobMonitor.Application.Interfaces;
+﻿using JobMonitor.Domain.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace job_api.Controllers;

@@ -1,4 +1,4 @@
-﻿using JobMonitor.Application.Interfaces;
+﻿using JobMonitor.Domain.Interfaces.Services;
 using OpenAI.Chat;
 using System.ClientModel;
 

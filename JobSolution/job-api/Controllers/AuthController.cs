@@ -1,4 +1,4 @@
-﻿using JobMonitor.Application.Models;
+﻿using JobMonitor.Domain.Models;
 using JobMonitor.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -21,7 +21,7 @@ public class AuthController : ControllerBase
     {
         _authService = authService;
         _jwtConfig = jwtConfig.Value;
-        _headHunterConfig = headHunterConfig.Value; // Получаем конфиг HeadHunter
+        _headHunterConfig = headHunterConfig.Value;
     }
 
     [HttpGet("login")]

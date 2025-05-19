@@ -11,7 +11,7 @@ public class DeepSeekHttpClient
     public DeepSeekHttpClient(string apiKey)
     {
         _httpClient = new HttpClient();
-        _apiKey = apiKey ?? throw new System.Exception("DeepSeek API key is missing.");
+        _apiKey = apiKey;
 
         _httpClient.BaseAddress = new Uri("https://api.deepseek.com/");
     }

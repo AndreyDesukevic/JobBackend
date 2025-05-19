@@ -1,6 +1,6 @@
-﻿using JobMonitor.Application.Interfaces;
-using JobMonitor.Application.ResponseModels;
-using JobMonitor.Infrastructure.HttpClients;
+﻿using JobMonitor.Domain.Interfaces;
+using JobMonitor.Domain.Interfaces.Services;
+using JobMonitor.Domain.ResponseModels;
 using System.Text.Json;
 
 namespace JobMonitor.Infrastructure.Services;

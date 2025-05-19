@@ -1,4 +1,5 @@
-﻿using JobMonitor.Application.RequestModels;
+﻿using JobMonitor.Application.Services;
+using JobMonitor.Domain.RequestModels;
 using JobMonitor.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,5 +1,4 @@
-﻿
-namespace JobMonitor.Application.ResponseModels;
+﻿namespace JobMonitor.Domain.ResponseModels;
 
 public class VacancyResponse
 {

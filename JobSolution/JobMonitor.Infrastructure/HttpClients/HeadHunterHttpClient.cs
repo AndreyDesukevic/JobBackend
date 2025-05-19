@@ -1,4 +1,4 @@
-﻿using JobMonitor.Application.Interfaces;
+﻿using JobMonitor.Domain.Interfaces;
 using System.Text.Json;
 
 namespace JobMonitor.Infrastructure.HttpClients;

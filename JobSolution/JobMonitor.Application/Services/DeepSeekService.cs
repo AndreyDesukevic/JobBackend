@@ -1,6 +1,6 @@
 ﻿using JobMonitor.Infrastructure.HttpClients;
 
-namespace JobMonitor.Infrastructure.Services;
+namespace JobMonitor.Application.Services;
 
 public class DeepSeekService
 {

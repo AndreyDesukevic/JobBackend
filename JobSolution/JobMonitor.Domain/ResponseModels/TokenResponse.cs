@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace JobMonitor.Application.ResponseModels;
+namespace JobMonitor.Domain.ResponseModels;
 
 public class TokenResponse
 {
