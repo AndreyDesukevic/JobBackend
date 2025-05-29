@@ -4,7 +4,10 @@ namespace JobMonitor.Domain.Interfaces.Services;
 
 public interface IUserService
 {
-    Task<User> GetByHhIdAsync(string hhId);
-    Task CreateUserAsync(User user);
-    Task UpdateUserAsync(User user);
+    Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<User?> GetByHhIdAsync(string hhId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task AddAsync(User user, CancellationToken cancellationToken = default);
+    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 }

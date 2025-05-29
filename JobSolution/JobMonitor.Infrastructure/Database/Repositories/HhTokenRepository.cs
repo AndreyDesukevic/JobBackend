@@ -7,50 +7,33 @@ namespace JobMonitor.Infrastructure.Database.Repositories;
 
 public class HhTokenRepository : IHhTokenRepository
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext _dbContext;
 
-    public HhTokenRepository(ApplicationDbContext db)
+    public HhTokenRepository(ApplicationDbContext dbContext)
     {
-        _db = db;
+        _dbContext = dbContext;
     }
 
     public async Task<HhToken?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var entity = await _db.HhTokens
+        var entity = await _dbContext.HhTokens
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         return entity?.ToDomain();
     }
 
-    public async Task AddOrUpdateAsync(HhToken token, CancellationToken cancellationToken = default)
+    public async Task AddAsync(HhToken token, CancellationToken cancellationToken = default)
     {
-        var existing = await _db.HhTokens
-            .FirstOrDefaultAsync(t => t.UserId == token.UserId, cancellationToken);
-
-        if (existing is null)
-        {
-            _db.HhTokens.Add(token.ToEntity());
-        }
-        else
-        {
-            existing.HhAccessToken = token.HhAccessToken;
-            existing.HhRefreshToken = token.HhRefreshToken;
-            existing.HhExpiresAt = token.HhExpiresAt;
-            existing.UpdatedAt = token.UpdatedAt;
-            existing.CreatedAt = token.CreatedAt;
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
+        var entity = token.ToEntity();
+        _dbContext.HhTokens.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DeleteAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(HhToken token, CancellationToken cancellationToken = default)
     {
-        var entity = await _db.HhTokens.FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
-        if (entity is not null)
-        {
-            _db.HhTokens.Remove(entity);
-            await _db.SaveChangesAsync(cancellationToken);
-        }
+        var entity = token.ToEntity();
+        _dbContext.HhTokens.Update(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

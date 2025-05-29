@@ -2,7 +2,7 @@ using JobMonitor.Application.Services;
 using JobMonitor.Domain.Interfaces;
 using JobMonitor.Domain.Interfaces.Repositories;
 using JobMonitor.Domain.Interfaces.Services;
-using JobMonitor.Domain.Models;
+using JobMonitor.Domain.Models.Configs;
 using JobMonitor.Infrastructure.Database;
 using JobMonitor.Infrastructure.Database.Repositories;
 using JobMonitor.Infrastructure.HttpClients;
@@ -37,6 +37,7 @@ namespace job_api
 
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAppTokenService, AppTokenService>();
+            builder.Services.AddScoped<IHhTokenService, HhTokenService>();
 
             builder.Services.AddScoped<IAppTokenRepository, AppTokenRepository>();
             builder.Services.AddScoped<IHhTokenRepository, HhTokenRepository>();

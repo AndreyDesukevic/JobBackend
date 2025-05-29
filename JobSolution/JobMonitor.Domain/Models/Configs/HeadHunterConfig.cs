@@ -1,4 +1,4 @@
-﻿namespace JobMonitor.Domain.Models;
+﻿namespace JobMonitor.Domain.Models.Configs;
 
 public class HeadHunterConfig
 {

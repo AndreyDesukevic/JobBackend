@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace JobMonitor.Domain.Models;
+namespace JobMonitor.Domain.ResponseModels;
 
 public class HeadHunterUser
 {

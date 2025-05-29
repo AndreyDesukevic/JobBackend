@@ -1,4 +1,4 @@
-﻿using JobMonitor.Domain.Models;
+﻿using JobMonitor.Domain.Models.Configs;
 using JobMonitor.Domain.ResponseModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

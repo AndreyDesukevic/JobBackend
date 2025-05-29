@@ -6,25 +6,40 @@ namespace JobMonitor.Application.Services;
 
 public class UserService : IUserService
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IUserRepository _repository;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository repository)
     {
-        _userRepository = userRepository;
+        _repository = repository;
     }
 
-    public async Task<User> GetByHhIdAsync(string hhId)
+    public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _userRepository.GetByHhIdAsync(hhId);
+        return _repository.GetByIdAsync(id, cancellationToken);
     }
 
-    public async Task CreateUserAsync(User user)
+    public Task<User?> GetByHhIdAsync(string hhId, CancellationToken cancellationToken = default)
     {
-        await _userRepository.AddAsync(user);
+        return _repository.GetByHhIdAsync(hhId, cancellationToken);
     }
 
-    public async Task UpdateUserAsync(User user)
+    public Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        await _userRepository.UpdateAsync(user);
+        return _repository.GetAllAsync(cancellationToken);
+    }
+
+    public Task AddAsync(User user, CancellationToken cancellationToken = default)
+    {
+        return _repository.AddAsync(user, cancellationToken);
+    }
+
+    public Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        return _repository.UpdateAsync(user, cancellationToken);
+    }
+
+    public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return _repository.DeleteAsync(id, cancellationToken);
     }
 }

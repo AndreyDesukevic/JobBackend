@@ -7,43 +7,37 @@ namespace JobMonitor.Infrastructure.Database.Repositories;
 
 public class AppTokenRepository : IAppTokenRepository
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext _dbContext;
 
-    public AppTokenRepository(ApplicationDbContext db)
+    public AppTokenRepository(ApplicationDbContext dbContext)
     {
-        _db = db;
-    }
-
-    public async Task<AppToken?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var entity = await _db.AppTokens.FindAsync(new object[] { id }, cancellationToken);
-        return entity?.ToDomain();
+        _dbContext = dbContext;
     }
 
     public async Task<IEnumerable<AppToken>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var tokens = await _db.AppTokens
+        var entities = await _dbContext.AppTokens
             .Where(t => t.UserId == userId)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        return tokens.Select(t => t.ToDomain());
+        return entities.Select(e => e.ToDomain());
     }
 
     public async Task AddAsync(AppToken token, CancellationToken cancellationToken = default)
     {
         var entity = token.ToEntity();
-        _db.AppTokens.Add(entity);
-        await _db.SaveChangesAsync(cancellationToken);
+        _dbContext.AppTokens.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task DeleteByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var entity = await _db.AppTokens.FindAsync(new object[] { id }, cancellationToken);
-        if (entity is not null)
-        {
-            _db.AppTokens.Remove(entity);
-            await _db.SaveChangesAsync(cancellationToken);
-        }
+        var tokens = await _dbContext.AppTokens
+            .Where(t => t.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        _dbContext.AppTokens.RemoveRange(tokens);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }
