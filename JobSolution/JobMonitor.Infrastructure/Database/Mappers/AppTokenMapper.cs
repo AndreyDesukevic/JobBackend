@@ -13,7 +13,8 @@ public static class AppTokenMapper
             UserId = entity.UserId,
             AccessToken = entity.AccessToken,
             ExpiresAt = entity.ExpiresAt,
-            CreatedAt = entity.CreatedAt
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt
         };
     }
 
@@ -25,7 +26,8 @@ public static class AppTokenMapper
             UserId = domain.UserId,
             AccessToken = domain.AccessToken,
             ExpiresAt = domain.ExpiresAt,
-            CreatedAt = domain.CreatedAt
+            CreatedAt = domain.CreatedAt,
+            UpdatedAt = domain.UpdatedAt
         };
     }
 }

@@ -18,18 +18,28 @@ public class AppTokenService : IAppTokenService
         return _tokenRepository.AddAsync(token, cancellationToken);
     }
 
+    public Task<AppToken?> GetByAccessTokenAsync(string accessToken, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IEnumerable<AppToken>> GetByUserIdAsync(int userId, CancellationToken cancellationToken)
     {
         return _tokenRepository.GetByUserIdAsync(userId, cancellationToken);
     }
 
-    public Task<AppToken?> GetByAccessTokenAsync(string accessToken, CancellationToken cancellationToken)
+    public async Task<AppToken?> GetLatestByUserIdAsync(int userId, CancellationToken cancellationToken)
     {
-        return _tokenRepository.GetByAccessTokenAsync(accessToken, cancellationToken);
+        return await _tokenRepository.GetLatestByUserIdAsync(userId, cancellationToken);
     }
 
     public Task RemoveAsync(AppToken token, CancellationToken cancellationToken)
     {
-        return _tokenRepository.RemoveAsync(token, cancellationToken);
+        throw new NotImplementedException();
+    }
+
+    public async Task UpdateAsync(AppToken token, CancellationToken cancellationToken)
+    {
+       await _tokenRepository.UpdateAsync(token,cancellationToken);
     }
 }

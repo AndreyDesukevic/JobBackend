@@ -7,7 +7,10 @@ using JobMonitor.Infrastructure.Database;
 using JobMonitor.Infrastructure.Database.Repositories;
 using JobMonitor.Infrastructure.HttpClients;
 using JobMonitor.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace job_api
 {
@@ -23,6 +26,22 @@ namespace job_api
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
               options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]
+                            ?? throw new InvalidOperationException("Jwt:SecretKey is not configured.")))
+                    };
+                });
 
             builder.Services.Configure<HeadHunterConfig>(builder.Configuration.GetSection("HeadHunter"));
             builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("Jwt"));
@@ -75,8 +94,8 @@ namespace job_api
 
             app.UseCors();
             app.UseHttpsRedirection();
+            app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 

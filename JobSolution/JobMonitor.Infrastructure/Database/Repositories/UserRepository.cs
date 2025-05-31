@@ -34,11 +34,12 @@ public class UserRepository : IUserRepository
         return entities.Select(e => e.ToDomain());
     }
 
-    public async Task AddAsync(User user, CancellationToken cancellationToken = default)
+    public async Task<int> AddAsync(User user, CancellationToken cancellationToken = default)
     {
         var entity = user.ToEntity();
         _db.Users.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
+        return entity.Id;
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)

@@ -28,7 +28,7 @@ public class UserService : IUserService
         return _repository.GetAllAsync(cancellationToken);
     }
 
-    public Task AddAsync(User user, CancellationToken cancellationToken = default)
+    public Task<int> AddAsync(User user, CancellationToken cancellationToken = default)
     {
         return _repository.AddAsync(user, cancellationToken);
     }

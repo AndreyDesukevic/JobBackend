@@ -37,4 +37,22 @@ public class HeadHunterService : IHeadHunterService
 
         return vacancies;
     }
+
+    public async Task<string> CreateSavedSearchAsync(string hhAccessToken, string name, string text)
+    {
+        return await _httpClient.CreateSavedSearchAsync(hhAccessToken, name, text);
+    }
+
+    public async Task<List<SavedSearchResponse>> GetSavedSearchesAsync(string hhAccessToken, int page, int perPage, string locale, string host)
+    {
+        return await _httpClient.GetSavedSearchesAsync(hhAccessToken, page, perPage, locale, host);
+    }
+    public async Task<string> GetSavedSearchByIdAsync(string hhAccessToken, string id, string locale, string host)
+    {
+        return await _httpClient.GetSavedSearchByIdAsync(hhAccessToken, id, locale, host);
+    }
+    public async Task DeleteSavedSearchAsync(string hhAccessToken, string id, string locale, string host)
+    {
+        await _httpClient.DeleteSavedSearchAsync(hhAccessToken, id, locale, host);
+    }
 }

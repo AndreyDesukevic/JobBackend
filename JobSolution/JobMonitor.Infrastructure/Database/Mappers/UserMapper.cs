@@ -16,9 +16,7 @@ public static class UserMapper
             LastName = entity.LastName,
             Phone = entity.Phone,
             CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt,
-            HhToken = entity.HhToken?.ToDomain(),
-            AppTokens = entity.AppTokens.Select(a => a.ToDomain()).ToList()
+            UpdatedAt = entity.UpdatedAt
         };
     }
 
@@ -33,9 +31,7 @@ public static class UserMapper
             LastName = domain.LastName,
             Phone = domain.Phone,
             CreatedAt = domain.CreatedAt,
-            UpdatedAt = domain.UpdatedAt,
-            HhToken = domain.HhToken?.ToEntity(),
-            AppTokens = domain.AppTokens.Select(a => a.ToEntity()).ToList()
+            UpdatedAt = domain.UpdatedAt
         };
     }
 }

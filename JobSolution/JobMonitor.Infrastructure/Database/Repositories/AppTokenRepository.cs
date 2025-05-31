@@ -24,6 +24,16 @@ public class AppTokenRepository : IAppTokenRepository
         return entities.Select(e => e.ToDomain());
     }
 
+    public async Task<AppToken?> GetLatestByUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.AppTokens
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.ExpiresAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return entity?.ToDomain();
+    }
+
     public async Task AddAsync(AppToken token, CancellationToken cancellationToken = default)
     {
         var entity = token.ToEntity();
@@ -38,6 +48,24 @@ public class AppTokenRepository : IAppTokenRepository
             .ToListAsync(cancellationToken);
 
         _dbContext.AppTokens.RemoveRange(tokens);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateAsync(AppToken token, CancellationToken cancellationToken = default)
+    {
+        var existing = await _dbContext.AppTokens
+             .FirstOrDefaultAsync(t => t.UserId == token.UserId, cancellationToken);
+
+        if (existing == null)
+        {
+            throw new InvalidOperationException("AppToken not found for update");
+        }
+
+        existing.AccessToken = token.AccessToken;
+        existing.ExpiresAt = token.ExpiresAt;
+        existing.UpdatedAt = token.UpdatedAt;
+
+        _dbContext.AppTokens.Update(existing);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }
