@@ -39,11 +39,10 @@ public class HeadHunterHttpClient : IHeadHunterHttpClient
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hhAccessToken);
 
         var parameters = new List<KeyValuePair<string, string>>
-    {
-        new("name", name),
-        new("text", text)
-        // Добавь остальные параметры по мере необходимости
-    };
+        {
+            new("name", name),
+            new("text", text)
+        };
         request.Content = new FormUrlEncodedContent(parameters);
 
         var response = await _httpClient.SendAsync(request);
@@ -55,13 +54,11 @@ public class HeadHunterHttpClient : IHeadHunterHttpClient
 
     public async Task<List<SavedSearchResponse>> GetSavedSearchesAsync(string hhAccessToken, int page = 0, int perPage = 10, string locale = "RU", string host = "hh.ru")
     {
-        var url = $"{BaseUrl}/saved_searches/vacancies?page={page}&per_page={perPage}&locale={locale}&host={host}";
+        var url = $"{BaseUrl}/saved_searches/vacancies?page={page}&per_page=10&locale={locale}&host={host}";
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hhAccessToken);
-        request.Headers.Add("User-Agent", "JobMonitorApp/1.0 (my-app-feedback@example.com)");
 
         var response = await _httpClient.SendAsync(request);
-        //response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
 
         using var doc = JsonDocument.Parse(json);
@@ -72,20 +69,32 @@ public class HeadHunterHttpClient : IHeadHunterHttpClient
         {
             foreach (var item in items.EnumerateArray())
             {
+                var id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+                var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                var createdAt = item.TryGetProperty("created_at", out var createdAtProp) && createdAtProp.ValueKind == JsonValueKind.String
+                    ? DateTime.Parse(createdAtProp.GetString())
+                    : DateTime.MinValue;
+                var itemsCount = item.TryGetProperty("items", out var itemsProp) && itemsProp.TryGetProperty("count", out var countProp)
+                    ? countProp.GetInt32()
+                    : 0;
+                var newItemsCount = item.TryGetProperty("new_items", out var newItemsProp) && newItemsProp.TryGetProperty("count", out var newCountProp)
+                    ? newCountProp.GetInt32()
+                    : 0;
+
                 result.Add(new SavedSearchResponse
                 {
-                    Id = item.GetProperty("id").GetString(),
-                    Name = item.GetProperty("name").GetString(),
-                    CreatedAt = item.GetProperty("created_at").GetDateTime(),
-                    ItemsCount = item.GetProperty("items").GetProperty("count").GetInt32(),
-                    NewItemsCount = item.GetProperty("new_items").GetProperty("count").GetInt32()
+                    Id = id,
+                    Name = name,
+                    CreatedAt = createdAt,
+                    ItemsCount = itemsCount,
+                    NewItemsCount = newItemsCount
                 });
             }
         }
         return result;
     }
 
-    public async Task<string> GetSavedSearchByIdAsync(string hhAccessToken, string id, string locale = "RU", string host = "hh.ru")
+    public async Task<string> GetSavedSearchByIdAsync(string? hhAccessToken, string id, string locale = "RU", string host = "hh.ru")
     {
         var url = $"{BaseUrl}/saved_searches/vacancies/{id}?locale={locale}&host={host}";
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -108,5 +117,26 @@ public class HeadHunterHttpClient : IHeadHunterHttpClient
         var response = await _httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode)
             throw new Exception($"HeadHunter API error: {await response.Content.ReadAsStringAsync()}");
+    }
+
+    public async Task<string> GetVacanciesByUrlAsync(string url)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    public async Task<JsonDocument> GetVacancyByIdAsync(string id, string hhAccessToken)
+    {
+        var url = $"{BaseUrl}/vacancies/{id}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hhAccessToken);
+
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+
+        return JsonDocument.Parse(json);
     }
 }

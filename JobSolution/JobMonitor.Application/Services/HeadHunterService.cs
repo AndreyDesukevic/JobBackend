@@ -1,4 +1,5 @@
-﻿using JobMonitor.Domain.Interfaces;
+﻿using JobMonitor.Domain.Dto;
+using JobMonitor.Domain.Interfaces;
 using JobMonitor.Domain.Interfaces.Services;
 using JobMonitor.Domain.ResponseModels;
 using System.Text.Json;
@@ -47,7 +48,7 @@ public class HeadHunterService : IHeadHunterService
     {
         return await _httpClient.GetSavedSearchesAsync(hhAccessToken, page, perPage, locale, host);
     }
-    public async Task<string> GetSavedSearchByIdAsync(string hhAccessToken, string id, string locale, string host)
+    public async Task<string> GetSavedSearchByIdAsync(string? hhAccessToken, string id, string locale, string host)
     {
         return await _httpClient.GetSavedSearchByIdAsync(hhAccessToken, id, locale, host);
     }
@@ -55,4 +56,34 @@ public class HeadHunterService : IHeadHunterService
     {
         await _httpClient.DeleteSavedSearchAsync(hhAccessToken, id, locale, host);
     }
+
+    public async Task<List<VacancyShortDto>> GetAllVacanciesAsync(string baseUrl)
+    {
+        var allVacancies = new List<VacancyShortDto>();
+        int page = 0;
+        int perPage = 100;
+        int totalPages = 1;
+
+        do
+        {
+            var pagedUrl = $"{baseUrl}&per_page={perPage}&page={page}";
+            var json = await _httpClient.GetVacanciesByUrlAsync(pagedUrl);
+
+            var vacancies = JsonSerializer.Deserialize<VacanciesDto>(json);
+
+            if (vacancies?.Items != null)
+                allVacancies.AddRange(vacancies.Items);
+
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("pages", out var pagesProp))
+                totalPages = pagesProp.GetInt32();
+
+            page++;
+        }
+        while (page < totalPages);
+
+        return allVacancies;
+    }
+
 }
