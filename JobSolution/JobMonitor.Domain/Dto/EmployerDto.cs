@@ -2,14 +2,11 @@
 
 namespace JobMonitor.Domain.Dto;
 
-public class VacancyShortDto
+public class EmployerDto
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = null!;
 
     [JsonPropertyName("name")]
-    public string Name { get; set; } = null!;
-
-    [JsonPropertyName("employer")]
-    public EmployerDto Employer { get; set; } = new ();
+    public string? Name { get; set; }
 }

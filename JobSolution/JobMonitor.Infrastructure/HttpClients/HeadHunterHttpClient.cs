@@ -1,5 +1,9 @@
 ﻿using JobMonitor.Domain.Interfaces;
+using JobMonitor.Domain.RequestModels;
 using JobMonitor.Domain.ResponseModels;
+using Newtonsoft.Json;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace JobMonitor.Infrastructure.HttpClients;
@@ -134,9 +138,50 @@ public class HeadHunterHttpClient : IHeadHunterHttpClient
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hhAccessToken);
 
         var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
 
         return JsonDocument.Parse(json);
+    }
+
+    public async Task<JsonDocument> GetResumesByUserIdAsync(string id, string hhAccessToken)
+    {
+        var url = $"{BaseUrl}/vacancies/{id}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hhAccessToken);
+
+        var response = await _httpClient.SendAsync(request);
+        var json = await response.Content.ReadAsStringAsync();
+
+        return JsonDocument.Parse(json);
+    }
+
+    public async Task<JsonDocument> GetResumeByIdAsync(string resumeId, string hhAccessToken)
+    {
+        var url = $"{BaseUrl}/resumes/{resumeId}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hhAccessToken);
+
+        var response = await _httpClient.SendAsync(request);
+        var json = await response.Content.ReadAsStringAsync();
+
+        return JsonDocument.Parse(json);
+    }
+
+    public async Task ApplyToVacancyAsync(string accessToken, ApplyToVacancyRequest requestDto)
+    {
+        var json = JsonConvert.SerializeObject(requestDto);
+        var request = new HttpRequestMessage(HttpMethod.Post, $"vacancies/{requestDto.VacancyId}/feedback")
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Ошибка при отклике: {response.StatusCode}\n{error}");
+        }
     }
 }

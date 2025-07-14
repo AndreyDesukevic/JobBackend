@@ -1,6 +1,8 @@
-﻿using JobMonitor.Domain.Dto;
+﻿using JobMonitor.Application.Services;
+using JobMonitor.Domain.Dto;
 using JobMonitor.Domain.Interfaces;
 using JobMonitor.Domain.Interfaces.Services;
+using JobMonitor.Domain.RequestModels;
 using JobMonitor.Domain.ResponseModels;
 using System.Text.Json;
 
@@ -84,6 +86,80 @@ public class HeadHunterService : IHeadHunterService
         while (page < totalPages);
 
         return allVacancies;
+    }
+
+    public async Task<JsonDocument> GetVacancyByIdAsync(string id, string hhAccessToken)
+    {
+        return await _httpClient.GetVacancyByIdAsync(id, hhAccessToken);
+    }
+
+    public async Task<string> GetVacancyDescriptionByIdAsync(string id, string hhAccessToken)
+    {
+        var vacancyJson = await _httpClient.GetVacancyByIdAsync(id, hhAccessToken);
+        var description = vacancyJson.RootElement.GetProperty("description").GetString();
+
+        return description ?? string.Empty;
+    }
+
+    public async Task<ResumeAggregatedInfoDto?> GetResumeTextForAiAsync(string resumeId, string accessToken)
+    {
+        var doc = await _httpClient.GetResumeByIdAsync(resumeId, accessToken);
+        var root = doc.RootElement;
+
+        var descriptions = new List<string>();
+        var allSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string? summary = null;
+
+        if (root.TryGetProperty("skills", out var summaryProp) && summaryProp.ValueKind == JsonValueKind.String)
+        {
+            summary = summaryProp.GetString()?.Trim();
+        }
+
+        if (root.TryGetProperty("experience", out var experience) && experience.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var job in experience.EnumerateArray())
+            {
+                if (job.TryGetProperty("description", out var desc) && desc.ValueKind == JsonValueKind.String)
+                {
+                    var text = desc.GetString()?.Trim();
+                    if (!string.IsNullOrWhiteSpace(text))
+                        descriptions.Add(text);
+                }
+            }
+        }
+
+        if (root.TryGetProperty("skill_set", out var skillSet) && skillSet.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var skill in skillSet.EnumerateArray())
+            {
+                if (skill.ValueKind == JsonValueKind.String)
+                {
+                    var skillName = skill.GetString()?.Trim();
+                    if (!string.IsNullOrWhiteSpace(skillName))
+                        allSkills.Add(skillName);
+                }
+            }
+        }
+
+        return new ResumeAggregatedInfoDto
+        {
+            Summary = summary ?? "",
+            CombinedExperienceDescription = string.Join("\n\n", descriptions),
+            CombinedSkills = string.Join(", ", allSkills.OrderBy(s => s))
+        };
+    }
+
+    public async Task ApplyWithGeneratedLetterAsync(string accessToken, string vacancyId, string resumeId, string letter)
+    {
+
+        var request = new ApplyToVacancyRequest
+        {
+            ResumeId = resumeId,
+            VacancyId = vacancyId,
+            Message = letter
+        };
+
+        await _httpClient.ApplyToVacancyAsync(accessToken, request);
     }
 
 }

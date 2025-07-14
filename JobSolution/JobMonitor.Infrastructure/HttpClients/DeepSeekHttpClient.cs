@@ -83,4 +83,34 @@ public class DeepSeekHttpClient
 
         throw new HttpRequestException($"Error calling DeepSeek API: {response.ReasonPhrase}");
     }
+
+    public async Task<string> SendPromptAsync(string prompt)
+    {
+        var requestBody = new
+        {
+            model = "deepseek-chat",
+            messages = new[]
+            {
+                new { role = "system", content = "You are a helpful assistant." },
+                new { role = "user", content = prompt }
+            },
+            stream = false
+        };
+
+        var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+        {
+            Content = content
+        };
+        requestMessage.Headers.Add("Authorization", $"Bearer {_apiKey}");
+
+        var response = await _httpClient.SendAsync(requestMessage);
+
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Error calling DeepSeek API: {response.ReasonPhrase}");
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        return responseContent;
+    }
 }

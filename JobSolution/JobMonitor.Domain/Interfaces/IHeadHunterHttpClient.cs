@@ -1,4 +1,5 @@
-﻿using JobMonitor.Domain.ResponseModels;
+﻿using JobMonitor.Domain.RequestModels;
+using JobMonitor.Domain.ResponseModels;
 using System.Text.Json;
 
 namespace JobMonitor.Domain.Interfaces;
@@ -12,4 +13,6 @@ public interface IHeadHunterHttpClient
     Task<string> GetSavedSearchByIdAsync(string? hhAccessToken, string id, string locale, string host);
     Task DeleteSavedSearchAsync(string hhAccessToken, string id, string local, string host);
     Task<string> GetVacanciesByUrlAsync(string url);
+    Task<JsonDocument> GetResumeByIdAsync(string resumeId, string hhAccessToken);
+    Task ApplyToVacancyAsync(string accessToken, ApplyToVacancyRequest requestDto);
 }

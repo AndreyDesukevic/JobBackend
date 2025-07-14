@@ -1,4 +1,5 @@
-﻿using JobMonitor.Application.Attributes;
+﻿using Hangfire;
+using JobMonitor.Application.Attributes;
 using JobMonitor.Application.Services;
 using JobMonitor.Domain.Interfaces.Services;
 using JobMonitor.Domain.Models;
@@ -18,20 +19,17 @@ public class SearchesController : ControllerBase
     private readonly IHhTokenService _hhTokenService;
     private readonly IHeadHunterService _headHunterService;
     private readonly IJobService _jobService;
-    private readonly ScheduledJobsService _scheduledJobsService;
-
+ 
     public SearchesController(
         IUserService userService,
         IHhTokenService hhTokenService,
         IHeadHunterService headHunterService,
-        IJobService jobService,
-        ScheduledJobsService scheduledJobsService)
+        IJobService jobService)
     {
         _userService = userService;
         _hhTokenService = hhTokenService;
         _headHunterService = headHunterService;
         _jobService = jobService;
-        _scheduledJobsService = scheduledJobsService;
     }
 
     [HttpPost]
@@ -69,7 +67,8 @@ public class SearchesController : ControllerBase
     public async Task<IActionResult> GetSearches([FromQuery] int page, [FromQuery] int perPage, [FromQuery] string locale, [FromQuery] string host, CancellationToken cancellationToken)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-        var hhToken = await _hhTokenService.GetByUserIdAsync(Int32.Parse(userId), cancellationToken);
+        var user = await _userService.GetByHhIdAsync(userId, cancellationToken);
+        var hhToken = await _hhTokenService.GetByUserIdAsync(user.Id, cancellationToken);
         try
         {
             var result = await _headHunterService.GetSavedSearchesAsync(hhToken.HhAccessToken, page, perPage, locale, host);
@@ -148,36 +147,32 @@ public class SearchesController : ControllerBase
 
     [HttpPost("{searchId}/run")]
     [HhAuthorize]
-    public Task<ScheduledJobStatus> RunSearch(string searchId)
-        => _scheduledJobsService.AddTaskAsync(nameof(RunSearch), async cancellationToken =>
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-            await _jobService.RunSearch(searchId, userId, cancellationToken);
-            return Task.CompletedTask;
-        });
+    public async Task<IActionResult> RunSearch(string searchId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var jobId = await _jobService.RunSearchJobAsync(searchId, userId);
+        return Ok(new { jobId });
+    }
 
     [HttpPost("{searchId}/stop")]
     [HhAuthorize]
-    public Task<IActionResult> StopSearch(string searchId, Guid taskId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelSearch(string searchId)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-        var jobTask = _scheduledJobsService.CancelTask(taskId);
-        if (jobTask != null) 
-        {
-            throw new Exception();
-        }
-        _jobService.StopSearch(searchId, userId);
+        var canceled = await _jobService.CancelSearchJobAsync(searchId);
+        if (!canceled)
+            return NotFound(new { message = "Задача не найдена или уже завершена." });
 
-        return Task.FromResult<IActionResult>(Ok(jobTask.Status));
+        return Ok(new { canceled = true });
     }
 
-    [HttpGet("{searchId}/statuses")]
-    [Authorize]
-    public IActionResult GetStatuses(string searchId)
+    [HttpGet("{searchId}/status")]
+    [HhAuthorize]
+    public async Task<IActionResult> GetStatus(string searchId)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-        return Ok();
+        var jobId = await _jobService.GetJobIdBySearchIdAsync(searchId);
+        if (jobId == null)
+            return NotFound(new { message = "Задача не найдена." });
+
+        return Ok(new { jobId });
     }
 }

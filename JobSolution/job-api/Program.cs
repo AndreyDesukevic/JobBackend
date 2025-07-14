@@ -1,3 +1,5 @@
+﻿using Hangfire;
+using Hangfire.PostgreSql;
 using JobMonitor.Application.Attributes;
 using JobMonitor.Application.RabbitMq;
 using JobMonitor.Application.Services;
@@ -13,6 +15,7 @@ using JobMonitor.Infrastructure.HttpClients;
 using JobMonitor.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
@@ -29,9 +32,27 @@ namespace job_api
             builder.Configuration.AddUserSecrets<Program>();
             string apiKeyOpenAi = builder.Configuration["OpenAI:ApiKey"] ?? throw new InvalidOperationException("OpenAI ApiKey is not configured.");
             string apiKeyDeepSeek = builder.Configuration["DeepSeek:ApiKey"] ?? throw new InvalidOperationException("DeepSeek ApiKey is not configured.");
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-              options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+              options.UseNpgsql(connectionString));
+
+            builder.Services.AddHangfire((serviceProvider, configuration) =>
+            {
+                configuration.UsePostgreSqlStorage(
+                    options =>
+                    {
+                        options.UseNpgsqlConnection(connectionString);
+                    },
+                    new PostgreSqlStorageOptions
+                    {
+                        SchemaName = "hangfire", 
+                        PrepareSchemaIfNecessary = true,
+                        QueuePollInterval = TimeSpan.FromSeconds(5)
+                    });
+            });
+
+            builder.Services.AddHangfireServer();
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -99,6 +120,7 @@ namespace job_api
             builder.Services.AddScoped<IAppTokenRepository, AppTokenRepository>();
             builder.Services.AddScoped<IHhTokenRepository, HhTokenRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IJobTrackerRepository, JobTrackerRepository>();
             builder.Services.AddSingleton<RabbitMqService>();
             builder.Services.AddScoped<ISearchQueueService, SearchQueueService>();
             builder.Services.AddScoped<HhAuthorizationFilter>();
@@ -106,8 +128,6 @@ namespace job_api
 
             builder.Services.AddHttpClient<IHeadHunterHttpClient, HeadHunterHttpClient>();
             builder.Services.AddScoped<IHeadHunterService, HeadHunterService>();
-
-            builder.Services.AddSingleton<ScheduledJobsService>();
 
             builder.Services.AddScoped<DeepSeekService>();
 
@@ -135,6 +155,9 @@ namespace job_api
             {
                 app.MapOpenApi();
             }
+
+            // Панель мониторинга Hangfire
+            app.UseHangfireDashboard("/hangfire");
 
             app.UseCors();
             app.UseHttpsRedirection();

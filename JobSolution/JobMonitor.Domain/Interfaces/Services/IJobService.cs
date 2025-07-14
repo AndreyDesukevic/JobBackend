@@ -2,6 +2,7 @@
 
 public interface IJobService
 {
-    Task RunSearch(string searchId, string userId, CancellationToken cancellationToken);
-    Task StopSearch(string searchId, string userId);
+    Task<string> RunSearchJobAsync(string searchId, string userId);
+    Task<bool> CancelSearchJobAsync(string searchId);
+    Task<string?> GetJobIdBySearchIdAsync(string searchId);
 }
