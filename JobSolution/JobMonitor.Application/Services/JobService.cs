@@ -5,6 +5,7 @@ using JobMonitor.Domain.Interfaces.Repositories;
 using JobMonitor.Domain.Interfaces.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using System.Text;
 using System.Text.Json;
 
 namespace JobMonitor.Application.Services;
@@ -98,53 +99,119 @@ public class JobService : IJobService
         try
         {
             var hhToken = await _hhTokenService.GetByUserIdAsync(user.Id);
-            var searchJson = await _headHunterService.GetSavedSearchByIdAsync(hhToken?.HhAccessToken, searchId, "RU", "hh.ru");
-            var searchData = JsonSerializer.Deserialize<HhSearchDto>(searchJson);
-            var newVacanciesUrl = searchData?.NewItems?.Url;
-            var resume = await _headHunterService.GetResumeTextForAiAsync(resumeId, hhToken?.HhAccessToken);
-            var fullText = resume?.ToPlainText();
+            var searchData = await GetSearchDataAsync(hhToken.HhAccessToken, searchId);
+            var vacancies = await GetNewVacanciesAsync(searchId, user.HhId, searchData, hhToken.HhAccessToken);
+            var resume = await _headHunterService.GetResumeTextForAiAsync(resumeId, hhToken.HhAccessToken);
 
-            if (string.IsNullOrEmpty(newVacanciesUrl))
-            {
-                await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "error", message = "Не найден url новых вакансий" });
-                return;
-            }
-            await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "started", message = "Поиск запущен" });
-
-            var allVacancies = await _headHunterService.GetAllVacanciesAsync(newVacanciesUrl);
-
-            await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "info", message = $"Найдено новых вакансий: {allVacancies.Count}" });
-
-            foreach (var vacancy in allVacancies)
+            foreach (var vacancy in vacancies)
             {
                 if (!await _jobTracker.IsJobCancelledAsync(searchId))
                 {
                     _logger.LogInformation("Задача {SearchId} была отменена во время выполнения", searchId);
-                    await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "cancelled", message = "Поиск отменён" });
+                    await NotifyAsync(user.HhId, searchId, "cancelled", "Поиск отменён");
                     return;
                 }
-                await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "found", message = $"Вакансия: {vacancy.Name}" });
 
-                var vacancyDescription = await _headHunterService.GetVacancyDescriptionByIdAsync(vacancy.Id, hhToken.HhAccessToken);
-                await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "info", message = "Описание вакансии получено" });
+                try
+                {
+                    var description = await _headHunterService.GetVacancyDescriptionByIdAsync(vacancy.Id, hhToken.HhAccessToken);
+                    var coverLetter = await _deepSeekService.GenerateCoverLetterAsync(description, resume, vacancy);
 
-                await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "info", message = "Генерация сопроводительного письма..." });
-                var coverLetter = await _deepSeekService.GenerateCoverLetterAsync(vacancyDescription, resume, vacancy);
-                await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "info", message = "Сопроводительное письмо сгенерировано" });
-
-                await _headHunterService.ApplyWithGeneratedLetterAsync(hhToken.HhAccessToken, vacancy.Id, resumeId, coverLetter);
-                await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "info", message = $"Отклик на вакансию {vacancy.Name} завершен" });
-
+                    if (!string.IsNullOrWhiteSpace(coverLetter))
+                    {
+                        await SaveCoverLetterToFileAsync(vacancy, coverLetter);
+                        await NotifyAsync(user.HhId, searchId, "found", $"Вакансия: {vacancy.Name}");
+                        await NotifyAsync(user.HhId, searchId, "info", $"Сопроводительное письмо для вакансии {vacancy.Name} сгенерировано");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Ошибка при обработке вакансии {VacancyId}", vacancy.Id);
+                    await NotifyAsync(user.HhId, searchId, "error", $"Ошибка при обработке вакансии {vacancy.Name}");
+                    continue;
+                }
             }
 
-            await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "finished", message = "Отклик по всем вакансиям завершён" });
-
-            _logger.LogInformation("Задача для {SearchId} выполнена");
+            await NotifyAsync(user.HhId, searchId, "finished", "Отклик по всем вакансиям завершён");
         }
         finally
         {
-            await _hubContext.Clients.User(user.HhId).SendAsync("SearchStatus", new { searchId, status = "stopped", message = "Поиск завершен" });
+            await NotifyAsync(user.HhId, searchId, "stopped", "Поиск завершен");
             await _jobTracker.DeleteJobAsync(searchId);
         }
+    }
+    private async Task<HhSearchDto> GetSearchDataAsync(string hhAccessToken, string searchId)
+    {
+        var searchJson = await _headHunterService.GetSavedSearchByIdAsync(hhAccessToken, searchId, "RU", "hh.ru");
+        return JsonSerializer.Deserialize<HhSearchDto>(searchJson);
+    }
+
+    private async Task<List<VacancyShortDto>> GetNewVacanciesAsync(string searchId, string userHhId, HhSearchDto searchData, string accessToken)
+    {
+        if (string.IsNullOrEmpty(searchData?.NewItems?.Url))
+        {
+            await NotifyAsync(userHhId, searchId, "error", "Не найден url новых вакансий");
+            return [];
+        }
+
+        await NotifyAsync(userHhId, searchId, "started", "Поиск запущен");
+
+        var vacancies = await _headHunterService.GetAllVacanciesAsync(searchData.NewItems.Url);
+        await NotifyAsync(userHhId, searchId, "info", $"Найдено новых вакансий: {vacancies.Count}");
+
+        return vacancies;
+    }
+
+    private async Task ProcessVacancyAsync(VacancyShortDto vacancy, ResumeAggregatedInfoDto resume, string accessToken, string searchId, string userHhId)
+    {
+        await NotifyAsync(userHhId, searchId, "found", $"Вакансия: {vacancy.Name}");
+
+        var description = await _headHunterService.GetVacancyDescriptionByIdAsync(vacancy.Id, accessToken);
+        await NotifyAsync(userHhId, searchId, "info", "Описание вакансии получено");
+
+        await NotifyAsync(userHhId, searchId, "info", "Генерация сопроводительного письма...");
+        var coverLetter = await _deepSeekService.GenerateCoverLetterAsync(description, resume, vacancy);
+        await NotifyAsync(userHhId, searchId, "info", "Сопроводительное письмо сгенерировано");
+
+        // Сохраняем письмо в файл
+        await SaveCoverLetterToFileAsync(vacancy, coverLetter);
+
+        //await _headHunterService.ApplyWithGeneratedLetterAsync(accessToken, vacancy.Id, resumeId, coverLetter);
+        await NotifyAsync(userHhId, searchId, "info", $"Отклик на вакансию {vacancy.Name} завершен");
+    }
+
+    private async Task SaveCoverLetterToFileAsync(VacancyShortDto vacancy, string coverLetter)
+    {
+        var folder = Path.Combine(Directory.GetCurrentDirectory(), "CoverLetters");
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        var fileName = $"vacancy_{vacancy.Id}.txt";
+        var filePath = Path.Combine(folder, fileName);
+
+        var content = new StringBuilder()
+            .AppendLine($"Вакансия: {vacancy.Name}")
+            .AppendLine($"ID: {vacancy.Id}")
+            .AppendLine("-----")
+            .AppendLine(coverLetter)
+            .ToString();
+
+        await File.WriteAllTextAsync(filePath, content);
+    }
+
+    private async Task<bool> IsCancelledAsync(string searchId, string userHhId)
+    {
+        var cancelled = await _jobTracker.IsJobCancelledAsync(searchId);
+        if (cancelled)
+        {
+            _logger.LogInformation("Задача {SearchId} была отменена", searchId);
+            await NotifyAsync(userHhId, searchId, "cancelled", "Поиск отменён");
+        }
+        return cancelled;
+    }
+
+    private async Task NotifyAsync(string userHhId, string searchId, string status, string message)
+    {
+        await _hubContext.Clients.User(userHhId).SendAsync("SearchStatus", new { searchId, status, message });
     }
 }

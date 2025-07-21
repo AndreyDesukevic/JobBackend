@@ -16,5 +16,5 @@ public interface IHeadHunterService
     Task<JsonDocument> GetVacancyByIdAsync(string id, string hhAccessToken);
     Task<string> GetVacancyDescriptionByIdAsync(string id, string hhAccessToken);
     Task<ResumeAggregatedInfoDto?> GetResumeTextForAiAsync(string resumeId, string accessToken);
-    Task ApplyWithGeneratedLetterAsync(string accessToken, string vacancyId, string resumeId, string letter)
+    Task ApplyWithGeneratedLetterAsync(string accessToken, string vacancyId, string resumeId, string letter);
 }
