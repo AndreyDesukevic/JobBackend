@@ -36,6 +36,13 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/${{ secrets.SERVER_USER }}/careerhawk-backend
+
+          set -o allexport
+          source .env
+          set +o allexport
+
+          envsubst < appsettings.Production.json.template > src/JobBackend.API/appsettings.Production.json
+
           docker login ghcr.io -u ${{ secrets.GHCR_USERNAME }} -p ${{ secrets.GHCR_TOKEN }}
           docker compose -f docker-compose.production.yml pull
           docker compose -f docker-compose.production.yml up -d --build
