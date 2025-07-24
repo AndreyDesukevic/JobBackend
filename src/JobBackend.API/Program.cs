@@ -138,15 +138,26 @@ public class Program
 
         builder.Services.AddControllers();
 
+        //builder.Services.AddCors(options =>
+        //{
+        //    options.AddPolicy("frontendRequest", policy =>
+        //    {
+        //        policy.WithOrigins("http://localhost:5173");
+        //        policy.AllowAnyHeader();
+        //        policy.AllowAnyMethod();
+        //        policy.AllowCredentials();
+        //    });
+        //});
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy("frontendRequest", policy =>
-            {
-                policy.WithOrigins("http://localhost:5173");
-                policy.AllowAnyHeader();
-                policy.AllowAnyMethod();
-                policy.AllowCredentials();
-            });
+            options.AddPolicy("AllowSpecificOrigin",
+                builder =>
+                {
+                    builder.WithOrigins("http://159.223.19.114") // сюда ваш фронтенд-адрес
+                           .AllowAnyHeader()
+                           .AllowAnyMethod()
+                           .AllowCredentials(); // если используете куки/авторизацию
+                });
         });
 
         builder.Services.AddOpenApi();
@@ -162,7 +173,8 @@ public class Program
         // Панель мониторинга Hangfire
         app.UseHangfireDashboard("/hangfire");
 
-        app.UseCors("frontendRequest");
+        //app.UseCors("frontendRequest");
+        app.UseCors("AllowSpecificOrigin");
         app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();
